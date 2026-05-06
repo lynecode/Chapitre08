@@ -1,12 +1,21 @@
 package bookstoread;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+
 public class BookShelfSpec {
+    private BookShelf shelf;
+
+    @BeforeEach
+    void init() throws Exception {
+        shelf = new BookShelf();
+    }
+
     @Test
     public void shelfEmptyWhenNoBookAdded() throws Exception {
         BookShelf shelf = new BookShelf();
