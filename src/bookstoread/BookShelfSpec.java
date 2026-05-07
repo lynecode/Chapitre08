@@ -15,6 +15,8 @@ import java.time.Year;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.Nested;
+
 public class BookShelfSpec {
     private BookShelf shelf;
     Book effectiveJava;
@@ -41,90 +43,107 @@ public class BookShelfSpec {
                 LocalDate.of(2008, Month.AUGUST, 1));
     }
 
-    @Test
-    public void shelfEmptyWhenNoBookAdded() throws Exception {
-        BookShelf shelf = new BookShelf();
-        List<Book> books = shelf.books();
-        assertTrue(books.isEmpty(), () -> "BookShelf should be empty.");
-    }
+    @Nested
+    @DisplayName("Est vide")
+    class IsEmpty {
+        @Test
+        public void shelfEmptyWhenNoBookAdded() throws Exception {
+            BookShelf shelf = new BookShelf();
+            List<Book> books = shelf.books();
+            assertTrue(books.isEmpty(), () -> "BookShelf should be empty.");
+        }
 
-    @Test
-    void bookshelfContainsTwoBooksWhenTwoBooksAdded() {
-        BookShelf shelf = new BookShelf();
-        shelf.add(effectiveJava, codeComplete);
-        List<Book> books = shelf.books();
-        assertEquals(2, books.size(), () -> "BookShelf should have two books.");
-    }
-
-    @Test
-    public void emptyBookShelfWhenAddIsCalledWithoutBooks() {
-        BookShelf shelf = new BookShelf();
-        shelf.add();
-        List<Book> books = shelf.books();
-        assertTrue(books.isEmpty(), () -> "BookShelf should be empty.");
-    }
-
-    @Test
-    void booksReturnedFromBookShelfIsImmutableForClient() {
-        BookShelf shelf = new BookShelf();
-        shelf.add(effectiveJava, codeComplete);
-        List<Book> books = shelf.books();
-        try {
-            books.add(mythicalManMonth);
-            fail(() -> "Should not be able to add book to books");
-        } catch (Exception e) {
-            assertTrue(e instanceof UnsupportedOperationException, () -> "Should throw UnsupportedOperationException.");
+        @Test
+        public void emptyBookShelfWhenAddIsCalledWithoutBooks() {
+            BookShelf shelf = new BookShelf();
+            shelf.add();
+            List<Book> books = shelf.books();
+            assertTrue(books.isEmpty(), () -> "BookShelf should be empty.");
         }
     }
 
-    @Test
-    void bookshelfArrangedByBookTitle() {
-        shelf.add(effectiveJava, codeComplete, mythicalManMonth);
-        List<Book> books = shelf.arrange();
-        assertEquals(asList(codeComplete, effectiveJava, mythicalManMonth), books, () -> "Books in a bookshelf should be arranged lexicographically by book title");
+    @Nested
+    @DisplayName("Après avoir ajouté des livres")
+    class BooksAreAdded {
+        @Test
+        void bookshelfContainsTwoBooksWhenTwoBooksAdded() {
+            BookShelf shelf = new BookShelf();
+            shelf.add(effectiveJava, codeComplete);
+            List<Book> books = shelf.books();
+            assertEquals(2, books.size(), () -> "BookShelf should have two books.");
+        }
+
+        @Test
+        void booksReturnedFromBookShelfIsImmutableForClient() {
+            BookShelf shelf = new BookShelf();
+            shelf.add(effectiveJava, codeComplete);
+            List<Book> books = shelf.books();
+            try {
+                books.add(mythicalManMonth);
+                fail(() -> "Should not be able to add book to books");
+            } catch (Exception e) {
+                assertTrue(e instanceof UnsupportedOperationException, () -> "Should throw UnsupportedOperationException.");
+            }
+        }
     }
 
-    @Test
-    void booksInBookShelfAreInInsertionOrderAfterCallingArrange() {
-        shelf.add(effectiveJava, codeComplete, mythicalManMonth);
-        shelf.arrange();
-        List<Book> books = shelf.books();
-        assertEquals(asList(effectiveJava, codeComplete, mythicalManMonth), books, () -> "Books in bookshelf are in insertion order");
+    @Nested
+    @DisplayName("Tri des livres")
+    class BookArrangement {
+        @Test
+        void bookshelfArrangedByBookTitle() {
+            shelf.add(effectiveJava, codeComplete, mythicalManMonth);
+            List<Book> books = shelf.arrange();
+            assertEquals(asList(codeComplete, effectiveJava, mythicalManMonth), books, () -> "Books in a bookshelf should be arranged lexicographically by book title");
+        }
+
+        @Test
+        void booksInBookShelfAreInInsertionOrderAfterCallingArrange() {
+            shelf.add(effectiveJava, codeComplete, mythicalManMonth);
+            shelf.arrange();
+            List<Book> books = shelf.books();
+            assertEquals(asList(effectiveJava, codeComplete, mythicalManMonth), books, () -> "Books in bookshelf are in insertion order");
+        }
+
+        @Test
+        void bookshelfArrangedByUserProvidedCriteria() {
+            shelf.add(effectiveJava, codeComplete, mythicalManMonth);
+            List<Book> books = shelf.arrange(Comparator.<Book>naturalOrder().reversed());
+            assertEquals(asList(mythicalManMonth, effectiveJava, codeComplete), books, () -> "Books in a bookshelf are arranged in descending order of book title");
+        }
+
+        @Test
+        @DisplayName("La bibliothèque est organisée par date de publication")
+        void bookshelfArrangedByPublishedDate() {
+            shelf.add(effectiveJava, codeComplete, mythicalManMonth);
+            List<Book> books = shelf.arrange(Comparator.comparing(Book::getPublishedOn));
+            assertEquals(asList(mythicalManMonth, codeComplete, effectiveJava), books);
+        }
     }
 
-    @Test
-    void bookshelfArrangedByUserProvidedCriteria() {
-        shelf.add(effectiveJava, codeComplete, mythicalManMonth);
-        List<Book> books = shelf.arrange(Comparator.<Book>naturalOrder().reversed());
-        assertEquals(asList(mythicalManMonth, effectiveJava, codeComplete), books, () -> "Books in a bookshelf are arranged in descending order of book title");
+    @Nested
+    @DisplayName("Regroupement des livres")
+    class BookGrouping {
+        @Test
+        @DisplayName("books inside bookshelf are grouped by publication year")
+        void groupBooksInsideBookShelfByPublicationYear() {
+            shelf.add(effectiveJava, codeComplete, mythicalManMonth, cleanCode);
+            Map<Year, List<Book>> booksByPublicationYear = shelf.groupByPublicationYear();
+            assertThat(booksByPublicationYear).containsKey(Year.of(2008)).containsValues(Arrays.asList(effectiveJava, cleanCode));
+            assertThat(booksByPublicationYear).containsKey(Year.of(2004)).containsValues(Collections.singletonList(codeComplete));
+            assertThat(booksByPublicationYear).containsKey(Year.of(1975)).containsValues(Collections.singletonList(mythicalManMonth));
+        }
+
+        @Test
+        @DisplayName("Les livres à l'intérieur de la bibliothèque sont regroupés selon les critères fournis par l'utilisateur (regroupés par nom d'auteur)")
+        void groupBooksByUserProvidedCriteria() {
+            shelf.add(effectiveJava, codeComplete, mythicalManMonth, cleanCode);
+            Map<String, List<Book>> booksByAuthor = shelf.groupBy(Book::getAuthor);
+            assertThat(booksByAuthor).containsKey("Joshua Bloch").containsValues(Collections.singletonList(effectiveJava));
+            assertThat(booksByAuthor).containsKey("Steve McConnel").containsValues(Collections.singletonList(codeComplete));
+            assertThat(booksByAuthor).containsKey("Frederick Phillips Brooks").containsValues(Collections.singletonList(mythicalManMonth));
+            assertThat(booksByAuthor).containsKey("Robert C. Martin").containsValues(Collections.singletonList(cleanCode));
+        }
     }
 
-    @Test
-    @DisplayName("La bibliothèque est organisée par date de publication")
-    void bookshelfArrangedByPublishedDate() {
-        shelf.add(effectiveJava, codeComplete, mythicalManMonth);
-        List<Book> books = shelf.arrange(Comparator.comparing(Book::getPublishedOn));
-        assertEquals(asList(mythicalManMonth, codeComplete, effectiveJava), books);
-    }
-
-    @Test
-    @DisplayName("books inside bookshelf are grouped by publication year")
-    void groupBooksInsideBookShelfByPublicationYear() {
-        shelf.add(effectiveJava, codeComplete, mythicalManMonth, cleanCode);
-        Map<Year, List<Book>> booksByPublicationYear = shelf.groupByPublicationYear();
-        assertThat(booksByPublicationYear).containsKey(Year.of(2008)).containsValues(Arrays.asList(effectiveJava, cleanCode));
-        assertThat(booksByPublicationYear).containsKey(Year.of(2004)).containsValues(Collections.singletonList(codeComplete));
-        assertThat(booksByPublicationYear).containsKey(Year.of(1975)).containsValues(Collections.singletonList(mythicalManMonth));
-    }
-
-    @Test
-    @DisplayName("Les livres à l'intérieur de la bibliothèque sont regroupés selon les critères fournis par l'utilisateur (regroupés par nom d'auteur)")
-    void groupBooksByUserProvidedCriteria() {
-        shelf.add(effectiveJava, codeComplete, mythicalManMonth, cleanCode);
-        Map<String, List<Book>> booksByAuthor = shelf.groupBy(Book::getAuthor);
-        assertThat(booksByAuthor).containsKey("Joshua Bloch").containsValues(Collections.singletonList(effectiveJava));
-        assertThat(booksByAuthor).containsKey("Steve McConnel").containsValues(Collections.singletonList(codeComplete));
-        assertThat(booksByAuthor).containsKey("Frederick Phillips Brooks").containsValues(Collections.singletonList(mythicalManMonth));
-        assertThat(booksByAuthor).containsKey("Robert C. Martin").containsValues(Collections.singletonList(cleanCode));
-    }
 }
