@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static java.util.Arrays.asList;
@@ -87,5 +88,13 @@ public class BookShelfSpec {
         shelf.add(effectiveJava, codeComplete, mythicalManMonth);
         List<Book> books = shelf.arrange(Comparator.<Book>naturalOrder().reversed());
         assertEquals(asList(mythicalManMonth, effectiveJava, codeComplete), books, () -> "Books in a bookshelf are arranged in descending order of book title");
+    }
+
+    @Test
+    @DisplayName("La bibliothèque est organisée par date de publication")
+    void bookshelfArrangedByPublishedDate() {
+        shelf.add(effectiveJava, codeComplete, mythicalManMonth);
+        List<Book> books = shelf.arrange(Comparator.comparing(Book::getPublishedOn));
+        assertEquals(asList(mythicalManMonth, codeComplete, effectiveJava), books);
     }
 }
